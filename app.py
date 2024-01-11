@@ -19,26 +19,29 @@ lr = pickle.load(open('lr.pkl','rb'))
 #load dataset
 data = pd.read_csv('Breast Cancer.csv')
 
-st.title('Breast Cancer Application')
+data = data[['diagnosis','radius_mean','area_mean', 'radius_se', 'area_se', 'smoothness_mean','smoothness_se']]
+
+st.title('Aplikasi Prediksi Kanker Payudara')
 
 html_layout1 = """
 <br>
-<div style="background-color:red ; padding:2px">
+<div style="background-color:#474747 ; padding:2px">
 <h2 style="color:white;text-align:center;font-size:35px"><b>Diabetes Checkup</b></h2>
 </div>
 <br>
 <br>
 """
 st.markdown(html_layout1,unsafe_allow_html=True)
-activities = ['LR','Model Lain']
-option = st.sidebar.selectbox('Pilihan mu ?',activities)
-st.sidebar.header('Data Pasien')
 
+activities = ['Logistic Regresion']
+option = st.sidebar.selectbox('Pilih metode ?',activities)
+
+st.sidebar.header('Data Pasien')
 
 if st.checkbox("Tentang Dataset"):
     html_layout2 ="""
     <br>
-    <p>Ini adalah dataset PIMA Indian</p>
+    <p>Ini adalah dataset Breast Cancer</p>
     """
     st.markdown(html_layout2,unsafe_allow_html=True)
     st.subheader('Dataset')
@@ -49,17 +52,23 @@ if st.checkbox("Tentang Dataset"):
 sns.set_style('darkgrid')
 
 if st.checkbox('EDa'):
-    pr =ProfileReport(data,explorative=True)
+    pr =ProfileReport(data, explorative=True)
     st.header('**Input Dataframe**')
     st.write(data)
     st.write('---')
     st.header('**Profiling Report**')
     st_profile_report(pr)
 
+#mengubah B dan M pada kolom diagnosis menjadi 1 dan 0
+data['diagnosis'].replace({'M':1, 'B':0}, inplace = True)
+
 #train test split
-X=data.drop(['diagnosis'],axis=1)
+X = data.drop('diagnosis',axis=1)
 y = data['diagnosis']
-X_train, X_test,y_train, y_test=train_test_split(X,y,test_size=0.3,random_state=40)
+X_train, X_test,y_train,y_test = train_test_split(X,y,test_size=0.20,random_state=42)
+
+param_range = np.linspace(0.1, 1.0, 5)
+
 
 #Training Data
 if st.checkbox('Train-Test Dataset'):
@@ -74,26 +83,29 @@ if st.checkbox('Train-Test Dataset'):
     st.subheader('y_test')
     st.write(y_test.head())
     st.write(y_test.shape)
+    plt.xlabel("$\gamma$")
+    plt.ylabel("Score")
+    plt.ylim(0.5, 1.1)
+    plt.grid()
+    plt.legend(loc="best")
+
 
 def user_report():
-    kehamilan = st.sidebar.slider('Kehamilan',0,20,1)
-    glukosa = st.sidebar.slider('Glukosa',0,200,108)
-    bp = st.sidebar.slider('Tekanan Darah',0,140,40)
-    skinthickness = st.sidebar.slider('Ketebalan Kulit',0,100,25)
-    insulin = st.sidebar.slider('Insulin',0,1000,120)
-    bmi = st.sidebar.slider('BMI',0,80,25)
-    diabetespd = st.sidebar.slider('Diabetes Pedigree', 0.05,2.5,0.45)
-    age = st.sidebar.slider('Usia',21,100,24)
+    radius_mean = st.sidebar.slider('Radius Mean', 0.0, 10.0, 30.0)
+    area_mean = st.sidebar.slider('Area Mean', 0.0, 100.0, 2501.0)
+    radius_se = st.sidebar.slider('Radius Se', 0.0, 1.0, 2.8)
+    area_se = st.sidebar.slider('Area Se', 0.0, 50.0, 542.2)
+    smoothness_mean = st.sidebar.slider('Smoothness Mean', 0.00001, 0.1090, 0.1634)
+    smoothness_se = st.sidebar.slider('Smoothnes Se', 0.00001, 0.0060, 0.0310 )
+
     
     user_report_data = {
-        'Pregnancies':kehamilan,
-        'Glucose':glukosa,
-        'BloodPressure':bp,
-        'SkinThickness':skinthickness,
-        'Insulin':insulin,
-        'BMI':bmi,
-        'DiabetesPedigreeFunction':diabetespd,
-        'Age':age
+        'radius_mean':radius_mean,
+        'area_mean': area_mean,
+        'radius_se': radius_se,
+        'area_se':area_se,
+        'smoothness_mean':smoothness_mean,
+        'smoothness_se':smoothness_se
     }
     report_data = pd.DataFrame(user_report_data,index=[0])
     return report_data
@@ -110,9 +122,9 @@ lr_score = accuracy_score(y_test,lr.predict(X_test))
 st.subheader('Hasilnya adalah : ')
 output=''
 if user_result[0]==0:
-    output='Kamu Aman'
+    output='Kamu terkena kanker ganas'
 else:
-    output ='Kamu terkena diabetes'
+    output ='Kamu terkena kanker jinak'
 st.title(output)
 st.subheader('Model yang digunakan : \n'+option)
 st.subheader('Accuracy : ')
